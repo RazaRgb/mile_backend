@@ -1,0 +1,12 @@
+# Compiled binaries
+/mile-server
+/backend
+
+# Local environment/secrets
+.env
+
+# Debug tree dumps
+/tree_dumps/
+
+# Logs
+app.log
