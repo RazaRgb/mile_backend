@@ -1,0 +1,24 @@
+name: Run Tests
+on:
+  push: 
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    environment: main
+    steps:
+      - name: Fix apt mirrors + update
+        run: |
+          sudo sed -i 's|azure.archive.ubuntu.com|archive.ubuntu.com|g' \
+            /etc/apt/sources.list /etc/apt/sources.list.d/*.sources 2>/dev/null || true
+          sudo apt-get update -o Acquire::Retries=3 -o Acquire::http::Timeout=10
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache: true
+      - name begin tests
+        run: |
+          make test
+ 
+
