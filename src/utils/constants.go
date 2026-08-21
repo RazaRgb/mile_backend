@@ -3,6 +3,7 @@ package utils
 import (
 	"backend/src/models"
 	"fmt"
+	"strings"
 )
 
 type prompt struct {
@@ -10,17 +11,33 @@ type prompt struct {
 	User   string
 }
 
+// rootTopic returns the topmost topic of a learning path — the first item of
+// the "root → … → node" chain built by contextChain. Used to anchor every
+// prompt to the stream's overall subject so content can't drift off-topic.
+func rootTopic(learningPath string) string {
+	if idx := strings.Index(learningPath, " → "); idx >= 0 {
+		return learningPath[:idx]
+	}
+	return learningPath
+}
+
 func CreateExpansionPrompt(node models.Node, learningPath string) prompt {
 	return prompt{
-		System: "You will be given a topic/ subtopic, you are required to split it into subtopics, make sure the subtopics are just a single level below the original topic, do not skip any level. Keep the surrounding learning context in mind so the subtopics fit naturally within it.",
-		User:   fmt.Sprintf("The topic to subdivide is: %s.\nLearning path (parent topics first): %s", node.Topic, learningPath),
+		System: fmt.Sprintf(
+			"The overall topic of this learning path is %q (the first item in the path). Split the given topic into subtopics that serve this overall topic directly. Never introduce subtopics about tangential tools, methods, or fields that the overall topic does not require. Keep the subtopics a single level below the topic and do not skip any level.",
+			rootTopic(learningPath),
+		),
+		User: fmt.Sprintf("The topic to subdivide is: %s.\nLearning path (parent topics first): %s", node.Topic, learningPath),
 	}
 }
 
 func CreateGenerationPrompt(node models.Node, learningPath string) prompt {
 	return prompt{
-		System: "You are an expert technical writer. Write a concise, self-contained micro-lesson (under 2 minutes of reading) about the given topic, keeping the surrounding learning context in mind. Use short paragraphs and keep it engaging and easy to read through.",
-		User:   fmt.Sprintf("The topic for the article is: %s.\nLearning path (parent topics first): %s", node.Topic, learningPath),
+		System: fmt.Sprintf(
+			"You are an expert technical writer. Write a concise, self-contained micro-lesson (under 2 minutes of reading) about the given topic. The overall topic of this learning path is %q (the first item in the path); the lesson must serve that overall topic — do not drift into tangential material the overall topic does not require. Use short paragraphs and keep it engaging and easy to read through.",
+			rootTopic(learningPath),
+		),
+		User: fmt.Sprintf("The topic for the article is: %s.\nLearning path (parent topics first): %s", node.Topic, learningPath),
 	}
 }
 
@@ -46,8 +63,11 @@ var ExpansionSchema string = `
 
 func CreateLeafVerificationPrompt(node models.Node, learningPath string) prompt {
 	return prompt{
-		System: "You are a content planner for a micro-learning app. Judge whether the given topic is narrow enough to be explained fully and completely in under 100 words, given its position in the learning path. Be strict: if properly covering the topic would require more than 100 words, the answer must be false.",
-		User:   fmt.Sprintf("Topic: %s.\nLearning path (parent topics first): %s", node.Topic, learningPath),
+		System: fmt.Sprintf(
+			"You are a content planner for a micro-learning app. The overall topic of this learning path is %q (the first item in the path). Judge whether the given topic is narrow enough to be explained fully and completely in under 100 words, in the context of that overall topic. Be strict: if properly covering the topic would require more than 100 words, the answer must be false.",
+			rootTopic(learningPath),
+		),
+		User: fmt.Sprintf("Topic: %s.\nLearning path (parent topics first): %s", node.Topic, learningPath),
 	}
 }
 
