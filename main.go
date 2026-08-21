@@ -43,6 +43,7 @@ func main() {
 	// Private (auth-protected) routes.
 	mux.Handle("POST /api/v1/stream", handlers.WithAuth(http.HandlerFunc(handlers.HandleCreateStream)))
 	mux.Handle("GET /api/v1/streams", handlers.WithAuth(http.HandlerFunc(handlers.HandleListStreams)))
+	mux.Handle("GET /api/v1/stream/{stream_id}/tree", handlers.WithAuth(http.HandlerFunc(handlers.HandleGetStreamTree)))
 	mux.Handle("DELETE /api/v1/stream/{stream_id}", handlers.WithAuth(http.HandlerFunc(handlers.HandleDeleteStream)))
 	mux.Handle("GET /api/v1/debug/trees", handlers.WithAuth(http.HandlerFunc(handlers.HandleDumpTrees)))
 	mux.Handle("GET /api/v1/next-articles", handlers.WithAuth(http.HandlerFunc(handlers.HandleGetNextArticles)))

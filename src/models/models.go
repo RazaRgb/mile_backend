@@ -62,3 +62,13 @@ type FeedItem struct {
 	Content   string    `json:"content"`
 	CreatedAt time.Time `json:"created_at"`
 }
+
+// TreeNode is a node with its article status, as served to the progress view.
+type TreeNode struct {
+	NodeID    uuid.UUID `json:"node_id"`
+	Topic     string    `json:"topic"`
+	Path      string    `json:"path"`
+	IsLeaf    bool      `json:"is_leaf"`
+	Generated bool      `json:"generated"`
+	Status    *string   `json:"status"` // "watched"|"skipped"|"unwatched", null when no article yet
+}

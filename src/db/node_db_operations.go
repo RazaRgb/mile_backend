@@ -199,6 +199,39 @@ func ReleaseNodeGeneration(nodeID uuid.UUID, tx ...pgx.Tx) error {
 	return nil
 }
 
+// GetStreamTree returns every node of a stream belonging to the user, with its
+// article status (nil when no article exists yet), ordered by path. The join on
+// streams enforces ownership — an empty result means the stream is missing or
+// not the user's.
+func GetStreamTree(userID, streamID uuid.UUID, tx ...pgx.Tx) ([]models.TreeNode, error) {
+	query := `
+	SELECT n.id, n.topic, n.path, n.is_leaf, n.generated, LOWER(m.status)
+	FROM nodes n
+	JOIN streams s ON s.id = n.stream_id
+	LEFT JOIN article_metadata m ON m.node_id = n.id
+	WHERE s.user_id = $1 AND n.stream_id = $2
+	ORDER BY n.path
+	`
+	rows, err := queryOrTx(tx, query, userID, streamID)
+	if err != nil {
+		return nil, fmt.Errorf("query stream tree: %w", err)
+	}
+	defer rows.Close()
+
+	tree := make([]models.TreeNode, 0)
+	for rows.Next() {
+		var t models.TreeNode
+		if err := rows.Scan(&t.NodeID, &t.Topic, &t.Path, &t.IsLeaf, &t.Generated, &t.Status); err != nil {
+			return nil, fmt.Errorf("scan stream tree node: %w", err)
+		}
+		tree = append(tree, t)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate stream tree: %w", err)
+	}
+	return tree, nil
+}
+
 // GetUngeneratedLeaves returns up to limit leaf nodes across the user's
 // streams that do not yet have an article, ordered by path.
 func GetUngeneratedLeaves(userID uuid.UUID, limit int, tx ...pgx.Tx) ([]models.Node, error) {
